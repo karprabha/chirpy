@@ -25,9 +25,9 @@ func healthz(w http.ResponseWriter, r *http.Request) {
 }
 
 func metrics(w http.ResponseWriter, r *http.Request, cfg *apiConfig) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Hits: %d", cfg.fileserverHits.Load())
+	fmt.Fprintf(w, "<html>\n<head>\n<title>Chirpy Metrics</title>\n</head>\n<body>\n<h1>Welcome, Chirpy Admin</h1>\n<p>Chirpy has been visited %d times!</p>\n</body>\n</html>", cfg.fileserverHits.Load())
 }
 
 func reset(w http.ResponseWriter, r *http.Request, cfg *apiConfig) {
@@ -41,13 +41,13 @@ func main() {
 	apiCfg := &apiConfig{}
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /healthz", healthz)
+	mux.HandleFunc("GET /api/healthz", healthz)
 
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
-	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /admin/metrics", func(w http.ResponseWriter, r *http.Request) {
 		metrics(w, r, apiCfg)
 	})
-	mux.HandleFunc("POST /reset", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("POST /admin/reset", func(w http.ResponseWriter, r *http.Request) {
 		reset(w, r, apiCfg)
 	})
 
