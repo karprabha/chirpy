@@ -50,6 +50,9 @@ func main() {
 	mux.Handle("GET /api/chirps/{id}", handler.GetChirp(appConfig))
 	mux.Handle("DELETE /api/chirps/{id}", handler.DeleteChirp(appConfig))
 
+	// Webhooks routes
+	mux.Handle("POST /api/polka/webhooks", handler.PolkaWebhook(appConfig))
+
 	log.Println("Server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }
