@@ -28,12 +28,19 @@ func main() {
 	fileHandler := http.FileServer(http.Dir(getRootPath()))
 	mux.Handle("/app/", middleware.WithMetrics(appConfig, http.StripPrefix("/app/", fileHandler)))
 
+	// Admin routes
 	mux.Handle("GET /admin/metrics", handler.AdminMetrics(appConfig))
 	mux.Handle("POST /admin/reset", handler.AdminReset(appConfig))
 
+	// Health route
 	mux.Handle("GET /api/healthz", http.HandlerFunc(handler.Healthz))
+
+	// User routes
 	mux.Handle("POST /api/users", handler.CreateUser(appConfig))
+
+	// Chirp routes
 	mux.Handle("POST /api/chirps", handler.CreateChirp(appConfig))
+	mux.Handle("GET /api/chirps", handler.GetChirps(appConfig))
 
 	log.Println("Server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))

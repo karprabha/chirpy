@@ -79,3 +79,35 @@ func CreateChirp(cfg *config.Config) http.HandlerFunc {
 		})
 	}
 }
+
+func GetChirps(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		chirps, err := cfg.Queries.GetChirps(r.Context())
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		type chirp struct {
+			ID        uuid.UUID `json:"id"`
+			Body      string    `json:"body,omitempty"`
+			UserID    uuid.UUID `json:"user_id"`
+			CreatedAt time.Time `json:"created_at"`
+			UpdatedAt time.Time `json:"updated_at"`
+			Error     string    `json:"error,omitempty"`
+		}
+
+		response := make([]chirp, len(chirps))
+		for i, c := range chirps {
+			response[i] = chirp{
+				ID:        c.ID,
+				Body:      c.Body,
+				UserID:    c.UserID,
+				CreatedAt: c.CreatedAt,
+				UpdatedAt: c.UpdatedAt,
+			}
+		}
+
+		respond(w, http.StatusOK, response)
+	}
+}
