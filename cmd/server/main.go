@@ -37,6 +37,8 @@ func main() {
 
 	// Auth routes
 	mux.Handle("POST /api/login", handler.Login(appConfig))
+	mux.Handle("POST /api/revoke", handler.Revoke(appConfig))
+	mux.Handle("POST /api/refresh", handler.Refresh(appConfig))
 
 	// User routes
 	mux.Handle("POST /api/users", handler.CreateUser(appConfig))

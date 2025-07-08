@@ -10,14 +10,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/karprabha/chirpy/internal/auth"
 	"github.com/karprabha/chirpy/internal/config"
+	"github.com/karprabha/chirpy/internal/database"
 )
 
 func Login(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		type params struct {
-			Email            string `json:"email"`
-			Password         string `json:"password"`
-			ExpiresInSeconds *int   `json:"expires_in_seconds,omitempty"`
+			Email    string `json:"email"`
+			Password string `json:"password"`
 		}
 
 		var p params
@@ -48,14 +48,6 @@ func Login(cfg *config.Config) http.HandlerFunc {
 		}
 
 		expiration := 1 * time.Hour
-		if p.ExpiresInSeconds != nil {
-			expirationTime := time.Duration(*p.ExpiresInSeconds) * time.Second
-			if expirationTime > time.Hour {
-				expiration = time.Hour
-			} else {
-				expiration = expirationTime
-			}
-		}
 
 		token, err := auth.MakeJWT(user.ID, cfg.JWTSecret, expiration)
 		if err != nil {
@@ -63,20 +55,40 @@ func Login(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		refreshToken, err := auth.MakeRefreshToken()
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		createRefreshTokenParams := database.CreateRefreshTokenParams{
+			UserID:    user.ID,
+			Token:     refreshToken,
+			ExpiresAt: time.Now().Add(60 * 24 * time.Hour),
+		}
+
+		err = cfg.Queries.CreateRefreshToken(r.Context(), createRefreshTokenParams)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
 		type response struct {
-			ID        uuid.UUID `json:"id"`
-			Email     string    `json:"email"`
-			CreatedAt time.Time `json:"created_at"`
-			UpdatedAt time.Time `json:"updated_at"`
-			Token     string    `json:"token"`
+			ID           uuid.UUID `json:"id"`
+			Email        string    `json:"email"`
+			CreatedAt    time.Time `json:"created_at"`
+			UpdatedAt    time.Time `json:"updated_at"`
+			Token        string    `json:"token"`
+			RefreshToken string    `json:"refresh_token"`
 		}
 
 		res := response{
-			ID:        user.ID,
-			Email:     user.Email,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-			Token:     token,
+			ID:           user.ID,
+			Email:        user.Email,
+			CreatedAt:    user.CreatedAt,
+			UpdatedAt:    user.UpdatedAt,
+			Token:        token,
+			RefreshToken: refreshToken,
 		}
 
 		data, err := json.Marshal(res)
