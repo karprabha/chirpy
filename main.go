@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync/atomic"
 )
 
@@ -37,6 +39,71 @@ func reset(w http.ResponseWriter, r *http.Request, cfg *apiConfig) {
 	fmt.Fprintln(w, "Fileserver hit counter reset to 0")
 }
 
+func validateChirp(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Body string `json:"body"`
+	}
+
+	type errorResponse struct {
+		Error string `json:"error"`
+	}
+
+	type returnVals struct {
+		CleanedBody string `json:"cleaned_body"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	var params parameters
+
+	if err := decoder.Decode(&params); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if len(params.Body) > 140 {
+		errorRes := errorResponse{
+			Error: "Chirp is too long",
+		}
+		data, err := json.Marshal(errorRes)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(data)
+		return
+	}
+
+	var profaneWords = map[string]bool{
+		"kerfuffle": true,
+		"sharbert":  true,
+		"fornax":    true,
+	}
+
+	words := strings.Fields(params.Body)
+	for i, word := range words {
+		if profaneWords[strings.ToLower(word)] {
+			words[i] = "****"
+		}
+	}
+	params.Body = strings.Join(words, " ")
+
+	respBody := returnVals{
+		CleanedBody: params.Body,
+	}
+
+	data, err := json.Marshal(respBody)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
 func main() {
 	apiCfg := &apiConfig{}
 	mux := http.NewServeMux()
@@ -50,6 +117,8 @@ func main() {
 	mux.HandleFunc("POST /admin/reset", func(w http.ResponseWriter, r *http.Request) {
 		reset(w, r, apiCfg)
 	})
+
+	mux.HandleFunc("POST /api/validate_chirp", validateChirp)
 
 	port := "8080"
 	filepathRoot := http.Dir(".")
