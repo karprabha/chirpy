@@ -17,6 +17,7 @@ type Config struct {
 	FileServerHits atomic.Int32
 	Platform       string
 	JWTSecret      string
+	PolkaKey       string
 }
 
 func New() *Config {
@@ -24,6 +25,7 @@ func New() *Config {
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
 	jwtSecret := os.Getenv("JWT_SECRET")
+	polkaKey := os.Getenv("POLKA_KEY")
 
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -36,5 +38,6 @@ func New() *Config {
 		FileServerHits: atomic.Int32{},
 		Platform:       platform,
 		JWTSecret:      jwtSecret,
+		PolkaKey:       polkaKey,
 	}
 }
