@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -16,8 +15,6 @@ func getRootPath() string {
 	if err != nil {
 		log.Fatalf("Unable to resolve root path: %v", err)
 	}
-
-	fmt.Println("Root Path:", rootPath)
 
 	return rootPath
 }
