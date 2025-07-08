@@ -15,18 +15,23 @@ type Config struct {
 	DB             *sql.DB
 	Queries        *database.Queries
 	FileServerHits atomic.Int32
+	Platform       string
 }
 
 func New() *Config {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
+	platform := os.Getenv("PLATFORM")
+
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal("Failed to connect to DB:", err)
 	}
 
 	return &Config{
-		DB:      db,
-		Queries: database.New(db),
+		DB:             db,
+		Queries:        database.New(db),
+		FileServerHits: atomic.Int32{},
+		Platform:       platform,
 	}
 }

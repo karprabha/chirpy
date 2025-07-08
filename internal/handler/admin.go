@@ -7,7 +7,7 @@ import (
 	"github.com/karprabha/chirpy/internal/config"
 )
 
-func AdminMetrics(cfg *config.Config) http.Handler {
+func AdminMetrics(cfg *config.Config) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
@@ -15,11 +15,24 @@ func AdminMetrics(cfg *config.Config) http.Handler {
 	})
 }
 
-func AdminReset(cfg *config.Config) http.Handler {
+func AdminReset(cfg *config.Config) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if cfg.Platform != "dev" {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
 		cfg.FileServerHits.Store(0)
+
+		err := cfg.Queries.DeleteAllUsers(r.Context())
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hit counter reset"))
+		w.Write([]byte("Server reset"))
 	})
 }

@@ -32,6 +32,7 @@ func main() {
 	mux.Handle("POST /admin/reset", handler.AdminReset(appConfig))
 
 	mux.Handle("GET /api/healthz", http.HandlerFunc(handler.Healthz))
+	mux.Handle("POST /api/users", handler.CreateUser(appConfig))
 	mux.Handle("POST /api/validate_chirp", http.HandlerFunc(handler.ValidateChirp))
 
 	log.Println("Server running on :8080")
