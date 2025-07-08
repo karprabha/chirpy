@@ -41,8 +41,14 @@ func CreateUser(cfg *config.Config) http.HandlerFunc {
 			UpdatedAt: user.UpdatedAt,
 		}
 
+		data, err := json.Marshal(resp)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(resp)
+		w.Write(data)
 	}
 }

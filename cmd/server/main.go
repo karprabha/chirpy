@@ -33,7 +33,7 @@ func main() {
 
 	mux.Handle("GET /api/healthz", http.HandlerFunc(handler.Healthz))
 	mux.Handle("POST /api/users", handler.CreateUser(appConfig))
-	mux.Handle("POST /api/validate_chirp", http.HandlerFunc(handler.ValidateChirp))
+	mux.Handle("POST /api/chirps", handler.CreateChirp(appConfig))
 
 	log.Println("Server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
