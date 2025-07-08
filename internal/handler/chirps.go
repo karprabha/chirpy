@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -97,6 +98,7 @@ func CreateChirp(cfg *config.Config) http.HandlerFunc {
 func GetChirps(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authorIDStr := r.URL.Query().Get("author_id")
+		sortOrder := r.URL.Query().Get("sort")
 
 		var chirps []database.Chirp
 		var err error
@@ -115,6 +117,16 @@ func GetChirps(cfg *config.Config) http.HandlerFunc {
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
+		}
+
+		if sortOrder == "desc" {
+			sort.Slice(chirps, func(i, j int) bool {
+				return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+			})
+		} else {
+			sort.Slice(chirps, func(i, j int) bool {
+				return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
+			})
 		}
 
 		type chirp struct {
