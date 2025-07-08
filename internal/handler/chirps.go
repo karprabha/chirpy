@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/karprabha/chirpy/internal/auth"
 	"github.com/karprabha/chirpy/internal/config"
 	"github.com/karprabha/chirpy/internal/database"
 )
@@ -27,9 +28,20 @@ func respond(w http.ResponseWriter, code int, res any) {
 
 func CreateChirp(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		token, err := auth.GetBearerToken(r.Header)
+		if err != nil {
+			http.Error(w, "Unauthorized: Invalid or missing token", http.StatusUnauthorized)
+			return
+		}
+
+		userID, err := auth.ValidateJWT(token, cfg.JWTSecret)
+		if err != nil {
+			http.Error(w, "Unauthorized: Invalid or expired token", http.StatusUnauthorized)
+			return
+		}
+
 		type parameters struct {
-			Body   string    `json:"body"`
-			UserID uuid.UUID `json:"user_id"`
+			Body string `json:"body"`
 		}
 		type response struct {
 			ID        uuid.UUID `json:"id"`
@@ -63,7 +75,7 @@ func CreateChirp(cfg *config.Config) http.HandlerFunc {
 
 		createChirpParams := database.CreateChirpParams{
 			Body:   clean,
-			UserID: params.UserID,
+			UserID: userID,
 		}
 
 		chirp, err := cfg.Queries.CreateChirp(r.Context(), createChirpParams)
