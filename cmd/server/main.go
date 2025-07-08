@@ -48,6 +48,7 @@ func main() {
 	mux.Handle("POST /api/chirps", handler.CreateChirp(appConfig))
 	mux.Handle("GET /api/chirps", handler.GetChirps(appConfig))
 	mux.Handle("GET /api/chirps/{id}", handler.GetChirp(appConfig))
+	mux.Handle("DELETE /api/chirps/{id}", handler.DeleteChirp(appConfig))
 
 	log.Println("Server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))

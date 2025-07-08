@@ -164,3 +164,48 @@ func GetChirp(cfg *config.Config) http.HandlerFunc {
 		respond(w, http.StatusOK, res)
 	}
 }
+
+func DeleteChirp(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token, err := auth.GetBearerToken(r.Header)
+		if err != nil {
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		userId, err := auth.ValidateJWT(token, cfg.JWTSecret)
+		if err != nil {
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		id, err := uuid.Parse(r.PathValue("id"))
+		if err != nil {
+			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			return
+		}
+
+		chirp, err := cfg.Queries.GetChirp(r.Context(), id)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w, "Chirp not found", http.StatusNotFound)
+			} else {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
+			return
+		}
+
+		if chirp.UserID != userId {
+			http.Error(w, "Unauthorized", http.StatusForbidden)
+			return
+		}
+
+		err = cfg.Queries.DeleteChirp(r.Context(), id)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
