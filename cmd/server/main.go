@@ -28,14 +28,13 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.Handle("GET /api/healthz", http.HandlerFunc(handler.Healthz))
-
 	fileHandler := http.FileServer(http.Dir(getRootPath()))
 	mux.Handle("/app/", middleware.WithMetrics(appConfig, http.StripPrefix("/app/", fileHandler)))
 
 	mux.Handle("GET /admin/metrics", handler.AdminMetrics(appConfig))
 	mux.Handle("POST /admin/reset", handler.AdminReset(appConfig))
 
+	mux.Handle("GET /api/healthz", http.HandlerFunc(handler.Healthz))
 	mux.Handle("POST /api/validate_chirp", http.HandlerFunc(handler.ValidateChirp))
 
 	log.Println("Server running on :8080")
