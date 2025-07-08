@@ -41,6 +41,7 @@ func main() {
 	mux.Handle("POST /api/refresh", handler.Refresh(appConfig))
 
 	// User routes
+	mux.Handle("PUT /api/users", handler.UpdateUser(appConfig))
 	mux.Handle("POST /api/users", handler.CreateUser(appConfig))
 
 	// Chirp routes
