@@ -35,6 +35,9 @@ func main() {
 	// Health route
 	mux.Handle("GET /api/healthz", http.HandlerFunc(handler.Healthz))
 
+	// Auth routes
+	mux.Handle("POST /api/login", handler.Login(appConfig))
+
 	// User routes
 	mux.Handle("POST /api/users", handler.CreateUser(appConfig))
 

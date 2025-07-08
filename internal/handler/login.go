@@ -1,17 +1,18 @@
 package handler
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/karprabha/chirpy/internal/auth"
 	"github.com/karprabha/chirpy/internal/config"
-	"github.com/karprabha/chirpy/internal/database"
 )
 
-func CreateUser(cfg *config.Config) http.HandlerFunc {
+func Login(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		type params struct {
 			Email    string `json:"email"`
@@ -24,25 +25,19 @@ func CreateUser(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		if p.Email == "" || p.Password == "" {
-			http.Error(w, "email and password are required", http.StatusBadRequest)
+		user, err := cfg.Queries.GetUserByEmail(r.Context(), p.Email)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w, "Incorrect email or password", http.StatusUnauthorized)
+			} else {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
 			return
 		}
 
-		hashedPassword, err := auth.HashPassword(p.Password)
+		err = auth.CheckPasswordHash(p.Password, user.HashedPassword)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		createUserParams := database.CreateUserParams{
-			Email:          p.Email,
-			HashedPassword: hashedPassword,
-		}
-
-		user, err := cfg.Queries.CreateUser(r.Context(), createUserParams)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Incorrect email or password", http.StatusUnauthorized)
 			return
 		}
 
@@ -53,21 +48,21 @@ func CreateUser(cfg *config.Config) http.HandlerFunc {
 			UpdatedAt time.Time `json:"updated_at"`
 		}
 
-		resp := response{
+		res := response{
 			ID:        user.ID,
 			Email:     user.Email,
 			CreatedAt: user.CreatedAt,
 			UpdatedAt: user.UpdatedAt,
 		}
 
-		data, err := json.Marshal(resp)
+		data, err := json.Marshal(res)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(http.StatusOK)
 		w.Write(data)
 	}
 }
